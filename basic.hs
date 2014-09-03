@@ -5,9 +5,11 @@ import qualified Data.ByteString.Char8 as B
 import Control.Concurrent
 import Foreign.Marshal.Alloc
 import GHC.IO.Handle
+import System.Environment
 
 main = do
-  sh <- connectTo "jake.csh.rit.edu" $ PortNumber 8080
+  [host, port] <- getArgs
+  sh <- connectTo host $ PortNumber $ fromIntegral $ read port
   B.hPutStr sh "POST /register/robgssp HTTP/1.1\n\n"
   forM_ ([0..98]::[Int]) $ \_ -> forkIO attack
   attack1 sh
