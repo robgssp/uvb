@@ -7,6 +7,7 @@ import Text.Blaze.Html.Renderer.Utf8
 import Control.Concurrent.STM
 import Control.Concurrent.Timer
 import Control.Concurrent.Suspend.Lifted
+import System.Environment
 import qualified STMContainers.Map as SM
 import qualified Focus as F
 import qualified Text.Blaze.Html4.Strict as H
@@ -15,9 +16,10 @@ import qualified Data.Text as T
 data Score = Score { curr :: !Integer, last :: !Integer, rps :: !Integer }
 
 main = do
+  [port] <- getArgs
   scores <- atomically $ SM.new
   repeatedTimer (rpsTimer scores) (sDelay 1)
-  run 8080 $ app scores
+  run (read port) $ app scores
 
 app :: SM.Map T.Text Score -> Application
 app scores req resp =
