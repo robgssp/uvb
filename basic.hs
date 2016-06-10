@@ -8,6 +8,9 @@ import Foreign.Marshal.Alloc
 import GHC.IO.Handle
 import System.Environment
 
+nconss :: Int
+nconns = 100
+  
 main = do
   [host, port] <- getArgs
   (addrinfo:_) <- getAddrInfo 
@@ -16,7 +19,7 @@ main = do
                     (Just port)
   let sa = addrAddress addrinfo
   print sa
-  forM_ ([0..5]::[Int]) $ \_ -> forkIO (attack sa)
+  forM_ ([2..nconns]) $ \_ -> forkIO (attack sa)
   attack sa
 
 attack sa = do
