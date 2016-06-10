@@ -8,7 +8,7 @@ import Foreign.Marshal.Alloc
 import GHC.IO.Handle
 import System.Environment
 
-nconss :: Int
+nconns :: Int
 nconns = 100
   
 main = do
