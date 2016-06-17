@@ -14,7 +14,8 @@ nconns = 100
 main = do
   [host, port] <- getArgs
   (addrinfo:_) <- getAddrInfo 
-                    (Just (defaultHints { addrFamily = AF_INET })) 
+                    (Just (defaultHints { addrFamily = AF_INET
+                                        , addrSocketType = Stream })) 
                     (Just host) 
                     (Just port)
   let sa = addrAddress addrinfo
