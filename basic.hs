@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE Strict #-}
 import Network.Socket
 import Control.Monad
 import qualified Data.ByteString.Char8 as B
@@ -29,7 +30,9 @@ attack sa = do
   attack1 sock
 
 attack1 sock =
-  do forkIO $ forever $ B.recv sock 1024
+  do forkIO $ allocaBytes 1024 
+                          (\buf -> 
+                             forever $ recvBuf sock buf 1024)
      forever $ B.sendAll sock prepmsg
 
 prepmsg :: B.ByteString
